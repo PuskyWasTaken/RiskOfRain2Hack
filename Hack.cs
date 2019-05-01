@@ -110,6 +110,9 @@ namespace ROR2_Pusky
             if (m_enabledFunctions.Contains(HackMenuOptions.WEAKEN_ENEMIES)) WeakenEnemies();
             if (m_enabledFunctions.Contains(HackMenuOptions.BUY_ANYTHING)) UpdatePurchaseInteractions(false);
             if (m_enabledFunctions.Contains(HackMenuOptions.FULLY_HEAL)) HealPlayerPercentage(100);
+            if (m_enabledFunctions.Contains(HackMenuOptions.GOD_MODE)) CheckGodMode();
+
+
             // if (m_enabledFunctions.Contains(HackMenuOptions.DISABLE_ALL)) m_enabledFunctions.Clear();
         }
 
@@ -482,10 +485,20 @@ namespace ROR2_Pusky
         /* God Mode */
         private void ToggleGodMode()
         {
-            ToggleEnabledFunction(HackMenuOptions.GOD_MODE);
+            CheckGodMode();
+           
 
-            if (m_user != null && m_user.cachedBody != null)
-                m_user.cachedBody.healthComponent.godMode = !m_user.cachedBody.healthComponent.godMode;
+            bool godMode = ToggleEnabledFunction(HackMenuOptions.GOD_MODE);
+            m_user.cachedBody.healthComponent.godMode = godMode;
+        }
+
+        private void CheckGodMode()
+        {
+            if (m_user == null || m_user.cachedBody == null || m_user.cachedBody.healthComponent == null)
+            {
+                m_enabledFunctions.Remove(HackMenuOptions.GOD_MODE);
+                return;
+            }
         }
 
         /* Attack Speed */
