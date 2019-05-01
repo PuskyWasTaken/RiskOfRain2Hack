@@ -45,8 +45,7 @@ namespace ROR2_Pusky
 
             MENU_MISC,
                 BUY_ANYTHING,
-                MENU_HEAL,
-                    FULLY_HEAL,
+                FULLY_HEAL,
                 CHARGE_PORTAL_EXPERIMENTAL,
 
             LAST
@@ -187,7 +186,7 @@ namespace ROR2_Pusky
         private void DrawGUI()
         {
             /* Draw the buttons */
-            if (m_currentMenu != HackMenuOptions.UNKNOWN)
+            if (m_currentMenu != HackMenuOptions.UNKNOWN) // Add
                 CreateButtons(false);
             else
                 CreateButtons(true);
@@ -307,8 +306,6 @@ namespace ROR2_Pusky
         }
 
 
-
-
         // DO NOT REMOVE THE COMMENTS
 
         /*
@@ -413,13 +410,14 @@ namespace ROR2_Pusky
                 return;
 
             m_currentMenu = GoBack(m_currentMenu);
+            m_selectedIndex = GoBack(m_selectedIndex, true, false);
         }
 
         private void OnUp()
         {
             if (isMenu(m_selectedIndex) && m_currentMenu == HackMenuOptions.UNKNOWN)
             {
-                HackMenuOptions newIndex = GoBack(m_selectedIndex);
+                HackMenuOptions newIndex = GoBack(m_selectedIndex, true);
 
                 if (newIndex == HackMenuOptions.UNKNOWN)
                     newIndex = (m_selectedIndex - 1 <= HackMenuOptions.UNKNOWN ? m_selectedIndex : m_selectedIndex - 1);
@@ -427,7 +425,7 @@ namespace ROR2_Pusky
                 m_selectedIndex = newIndex;
             }
             else
-                m_selectedIndex = (m_selectedIndex - 1 <= HackMenuOptions.UNKNOWN ? m_selectedIndex : m_selectedIndex - 1);
+                m_selectedIndex = (m_selectedIndex - 1 <= m_currentMenu ? m_selectedIndex : m_selectedIndex - 1);
         }
 
         private void OnDown()
@@ -435,7 +433,7 @@ namespace ROR2_Pusky
             if (isMenu(m_selectedIndex) && m_currentMenu == HackMenuOptions.UNKNOWN)
                 m_selectedIndex = GoForward(m_selectedIndex);
             else
-                m_selectedIndex = (m_selectedIndex + 1 >= HackMenuOptions.LAST ? m_selectedIndex : m_selectedIndex + 1);
+                m_selectedIndex = (m_selectedIndex + 1 >= m_currentMenu ? m_selectedIndex : m_selectedIndex + 1);
 
         }
         private void LoadSubMenu(HackMenuOptions menuIndex)
@@ -443,12 +441,15 @@ namespace ROR2_Pusky
             m_currentMenu = menuIndex;
         }
 
-        private HackMenuOptions GoBack(HackMenuOptions oldMenu)
+        private HackMenuOptions GoBack(HackMenuOptions oldMenu, bool findIndex = false, bool ignoreSame = true)
         {
+            if (findIndex && !ignoreSame)
+                oldMenu++;
+
             while (oldMenu != HackMenuOptions.UNKNOWN)
             {
                 oldMenu--;
-                if (isMenu(oldMenu))
+                if (isMenu(oldMenu) && findIndex)
                     return oldMenu;
             }
 
