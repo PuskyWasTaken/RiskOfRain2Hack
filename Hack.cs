@@ -19,8 +19,6 @@ namespace ROR2_Pusky
         private static List<PurchaseInteraction> m_purchaseInteractionList;
         private static TeleporterInteraction m_portalInterraction;
         private static List<CharacterBody> m_enemyEntityList = new List<CharacterBody>();
-        private static List<int> m_previousPurchasePrices = new List<int>();
-        private static float m_previousAttackSpeed = -1;
 
         private bool m_isActive = true;
         private const string GUI_HEADER = "Made by Pusky";
@@ -31,21 +29,25 @@ namespace ROR2_Pusky
         {
             UNKNOWN = -1,
 
-            GOD_MODE,
-            WEAKEN_ENEMIES,
+            // DISABLE_ALL,                   // Disable all of the enabled hacks
+
+            MENU_HEALTH,
+                GOD_MODE,                   // Might not work sometime, maybe when having only shield.
+                FULLY_HEAL,                 // This is a toggle.
+                WEAKEN_ENEMIES,             // 1 HP toggle.
 
             MENU_ESP,
-                ENEMY_ESP,
-                CHEST_ESP,
-                PORTAL_ESP,
+                ENEMY_ESP,                  // Enemy ESP overlay toggle.
+                CHEST_ESP,                  // Chest ESP overlay toggle.
+                PORTAL_ESP,                 // Portal ESP overlay toggle.
 
             MENU_FAST,
-                FAST_ATTACK,
-                FAST_MOVEMENT,
+                FAST_ATTACK_4X,             // 4x Attack Speed toggle.
+                FAST_ATTACK_2X,             // 2x Attack Speed toggle.
+                INCREMENT_MOVEMENT_SPEED,   // 4X Base Movement Speed toggle.
 
             MENU_MISC,
-                BUY_ANYTHING,
-                FULLY_HEAL,
+                BUY_ANYTHING,           //
                 CHARGE_PORTAL_EXPERIMENTAL,
 
             LAST
@@ -66,8 +68,7 @@ namespace ROR2_Pusky
         }
 
 
-
-        /* Update Functions */
+        #region Update
         public void Update()
         {
             HandleInput();
@@ -109,6 +110,7 @@ namespace ROR2_Pusky
             if (m_enabledFunctions.Contains(HackMenuOptions.WEAKEN_ENEMIES)) WeakenEnemies();
             if (m_enabledFunctions.Contains(HackMenuOptions.BUY_ANYTHING)) UpdatePurchaseInteractions(false);
             if (m_enabledFunctions.Contains(HackMenuOptions.FULLY_HEAL)) HealPlayerPercentage(100);
+            // if (m_enabledFunctions.Contains(HackMenuOptions.DISABLE_ALL)) m_enabledFunctions.Clear();
         }
 
         private void HealPlayerPercentage(int percent)
@@ -116,6 +118,8 @@ namespace ROR2_Pusky
             m_user.cachedBody.healthComponent.health = percent / 100 * m_user.cachedBody.healthComponent.fullHealth;
         }
 
+
+        private static List<int> m_previousPurchasePrices = new List<int>();
         private void UpdatePurchaseInteractions(bool revertChanges)
         {
             /* Revert the changes */
@@ -179,9 +183,12 @@ namespace ROR2_Pusky
                     m_enemyEntityList.Add(component3);
             }
         }
-     
-     
-        
+
+
+        #endregion
+
+        #region Draw
+
         /* Draw Functions */
         private void DrawGUI()
         {
@@ -305,6 +312,7 @@ namespace ROR2_Pusky
            
         }
 
+        #endregion
 
         // DO NOT REMOVE THE COMMENTS
 
@@ -370,8 +378,7 @@ namespace ROR2_Pusky
         //
 
 
-
-        /* Events */
+        #region Events
         private void OnForward()
         {
             switch (m_selectedIndex)
@@ -379,6 +386,7 @@ namespace ROR2_Pusky
                 case HackMenuOptions.MENU_ESP:
                 case HackMenuOptions.MENU_FAST:
                 case HackMenuOptions.MENU_MISC:
+                case HackMenuOptions.MENU_HEALTH:
 
                     LoadSubMenu(m_selectedIndex);
                     break;
@@ -389,12 +397,23 @@ namespace ROR2_Pusky
                 case HackMenuOptions.CHEST_ESP:
                 case HackMenuOptions.ENEMY_ESP:
                 case HackMenuOptions.FULLY_HEAL:
-
+                // case HackMenuOptions.DISABLE_ALL:
 
                     ToggleEnabledFunction(m_selectedIndex);
                     break;
 
-                case HackMenuOptions.FAST_ATTACK: ToggleAttackSpeed(); break;
+                case HackMenuOptions.FAST_ATTACK_4X: 
+                case HackMenuOptions.FAST_ATTACK_2X:
+
+                    ToggleAttackSpeed(m_selectedIndex);
+                    break;
+
+                case HackMenuOptions.INCREMENT_MOVEMENT_SPEED:
+
+                    IncrementMovementSpeed();
+                    break;
+
+
                 case HackMenuOptions.BUY_ANYTHING: ToggleBuyAnything(); break;
                 case HackMenuOptions.GOD_MODE: ToggleGodMode(); break;
                 case HackMenuOptions.CHARGE_PORTAL_EXPERIMENTAL: FullyChargeTeleporter(); break;
@@ -403,7 +422,6 @@ namespace ROR2_Pusky
             }
            
         }
-
         private void OnBack()
         {
             if (m_currentMenu == HackMenuOptions.UNKNOWN)
@@ -412,7 +430,6 @@ namespace ROR2_Pusky
             m_currentMenu = GoBack(m_currentMenu);
             m_selectedIndex = GoBack(m_selectedIndex, true, false);
         }
-
         private void OnUp()
         {
             if (isMenu(m_selectedIndex) && m_currentMenu == HackMenuOptions.UNKNOWN)
@@ -427,20 +444,110 @@ namespace ROR2_Pusky
             else
                 m_selectedIndex = (m_selectedIndex - 1 <= m_currentMenu ? m_selectedIndex : m_selectedIndex - 1);
         }
-
         private void OnDown()
         {
             if (isMenu(m_selectedIndex) && m_currentMenu == HackMenuOptions.UNKNOWN)
                 m_selectedIndex = GoForward(m_selectedIndex);
+            else if (m_currentMenu != HackMenuOptions.UNKNOWN)
+                m_selectedIndex = (m_selectedIndex + 1 >= GoForward(m_currentMenu) ? m_selectedIndex : m_selectedIndex + 1);
             else
-                m_selectedIndex = (m_selectedIndex + 1 >= m_currentMenu ? m_selectedIndex : m_selectedIndex + 1);
+                m_selectedIndex = (m_selectedIndex + 1 >= HackMenuOptions.LAST ? m_selectedIndex : m_selectedIndex + 1);
 
+        }
+
+        #endregion
+
+        /*
+        public void OnDrawGUI(int id)
+        {
+            switch (id)
+            {
+                case GUI_WINDOW_ID: DrawGUI(); break;
+                default: break;
+
+            }
+        }
+        */
+
+        #region Toggle Functions
+
+        /* Buy Anything */
+        private void ToggleBuyAnything()
+        {
+            /* UpdatePurchaseInteractions one last time if it got disabled */
+            if (ToggleEnabledFunction(HackMenuOptions.BUY_ANYTHING) == false)
+                UpdatePurchaseInteractions(true);
+        }
+
+        /* God Mode */
+        private void ToggleGodMode()
+        {
+            ToggleEnabledFunction(HackMenuOptions.GOD_MODE);
+
+            if (m_user != null && m_user.cachedBody != null)
+                m_user.cachedBody.healthComponent.godMode = !m_user.cachedBody.healthComponent.godMode;
+        }
+
+        /* Attack Speed */
+        private static float m_previousAttackSpeed = -1;
+        private void ToggleAttackSpeed(HackMenuOptions i)
+        {
+            if (ToggleEnabledFunction(i))
+            {
+                m_previousAttackSpeed = m_user.cachedBody.baseAttackSpeed;
+
+                if (i == HackMenuOptions.FAST_ATTACK_4X && !m_enabledFunctions.Contains(HackMenuOptions.FAST_ATTACK_2X))
+                    m_user.cachedBody.baseAttackSpeed *= 4;
+                else if (i == HackMenuOptions.FAST_ATTACK_2X && !m_enabledFunctions.Contains(HackMenuOptions.FAST_ATTACK_4X))
+                    m_user.cachedBody.baseAttackSpeed *= 2;
+                else
+                    ToggleEnabledFunction(i);
+
+                return;
+            }
+
+            m_user.cachedBody.baseAttackSpeed = m_previousAttackSpeed;
+        }
+
+        /* Movement Speed */
+        private void IncrementMovementSpeed()
+        {
+            m_user.cachedBody.baseMoveSpeed += .5f;
+        }
+
+        /* Generic function */
+        private bool ToggleEnabledFunction(HackMenuOptions option)
+        {
+            if (m_enabledFunctions.Contains(option))
+            {
+                m_enabledFunctions.Remove(option);
+                return false;
+            }
+            else
+            {
+                m_enabledFunctions.Add(option);
+                return true;
+            }
+        }
+
+        #endregion
+
+        #region Utility Functions
+        private void WeakenEnemies()
+        {
+            if (m_enemyEntityList != null && m_enemyEntityList.Count > 0)
+                foreach (CharacterBody enemy in m_enemyEntityList)
+                    if (m_enabledFunctions.Contains(HackMenuOptions.WEAKEN_ENEMIES) && enemy.healthComponent.health > 1)
+                        enemy.healthComponent.health = 1;
+        }
+        private void FullyChargeTeleporter()
+        {
+            RoR2.TeleporterInteraction.instance.remainingChargeTimer = 0.001f;
         }
         private void LoadSubMenu(HackMenuOptions menuIndex)
         {
             m_currentMenu = menuIndex;
         }
-
         private HackMenuOptions GoBack(HackMenuOptions oldMenu, bool findIndex = false, bool ignoreSame = true)
         {
             if (findIndex && !ignoreSame)
@@ -456,77 +563,9 @@ namespace ROR2_Pusky
             return oldMenu;
         }
 
-        /*
-        public void OnDrawGUI(int id)
-        {
-            switch (id)
-            {
-                case GUI_WINDOW_ID: DrawGUI(); break;
-                default: break;
+        #endregion
 
-            }
-        }
-        */
-
-        /* Toggle Functions */
-        private void ToggleBuyAnything()
-        {
-            /* UpdatePurchaseInteractions one last time if it got disabled */
-            if (ToggleEnabledFunction(HackMenuOptions.BUY_ANYTHING) == false)
-                UpdatePurchaseInteractions(true);
-        }
-        private void ToggleGodMode()
-        {
-            ToggleEnabledFunction(HackMenuOptions.GOD_MODE);
-
-            if (m_user != null && m_user.cachedBody != null)
-                m_user.cachedBody.healthComponent.godMode = !m_user.cachedBody.healthComponent.godMode;
-        }
-
-        private void ToggleAttackSpeed()
-        {
-            if (ToggleEnabledFunction(HackMenuOptions.FAST_ATTACK))
-            {
-                m_previousAttackSpeed = m_user.cachedBody.baseAttackSpeed;
-                m_user.cachedBody.baseAttackSpeed = m_user.cachedBody.baseAttackSpeed * 4;
-                return;
-            }
-
-            m_user.cachedBody.baseAttackSpeed = m_previousAttackSpeed;
-
-        }
-        private bool ToggleEnabledFunction(HackMenuOptions option)
-        {
-            if (m_enabledFunctions.Contains(option))
-            {
-                m_enabledFunctions.Remove(option);
-                return false;
-            }
-            else
-            {
-                m_enabledFunctions.Add(option);
-                return true;
-            }
-        }
-
-
-        /* Utility Functions */
-        private void WeakenEnemies()
-        {
-            if (m_enemyEntityList != null && m_enemyEntityList.Count > 0)
-                foreach (CharacterBody enemy in m_enemyEntityList)
-                    if (m_enabledFunctions.Contains(HackMenuOptions.WEAKEN_ENEMIES) && enemy.healthComponent.health > 1)
-                        enemy.healthComponent.health = 1;
-        }
-        private void FullyChargeTeleporter()
-        {
-            RoR2.TeleporterInteraction.instance.remainingChargeTimer = 0.001f;
-        }
-
-
-
-
-        /* Helper Functions*/
+        #region Helper Functions
 
         private bool isMenu(HackMenuOptions i)
         {
@@ -601,4 +640,6 @@ namespace ROR2_Pusky
        
      
     }
+
+    #endregion
 }
